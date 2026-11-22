@@ -5,7 +5,7 @@
 import { initializeApp } from "firebase/app";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { getAI, getGenerativeModel, GoogleAIBackend, InferenceMode } from "firebase/ai";
-import { buildSummaryPrompt, buildFlashcardPrompt, parseFlashcards, chooseMode } from "./logic.js";
+import { buildSummaryPrompt, buildFlashcardPrompt, parseFlashcards, chooseMode } from "./logic.js?v=4";
 
 let app = null;
 let ai = null;
