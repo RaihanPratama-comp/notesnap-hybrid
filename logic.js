@@ -30,6 +30,29 @@ export function chooseMode(feature, notesText, privateMode) {
   return "PREFER_ON_DEVICE";
 }
 
+// Resolve the mode actually handed to the SDK given on-device availability.
+// When Gemini Nano / the Chrome Prompt API cannot run at all
+// (availability === "unavailable"), EVERY PREFER_* mode must be pinned to
+// ONLY_IN_CLOUD: otherwise the SDK's own on-device attempt dies inside
+// generateContent() with Chrome Prompt API errors (e.g. "model.initializeDeviceModel
+// is not a function", "The feature flag gating model execution was disabled")
+// instead of falling back to cloud. ONLY_ON_DEVICE (Private mode) is never
+// rewritten — private notes must not leave the device.
+export function effectiveMode(modeName, availability) {
+  if (modeName === "ONLY_ON_DEVICE") return "ONLY_ON_DEVICE";
+  if (availability === "unavailable" && String(modeName).startsWith("PREFER_")) {
+    return "ONLY_IN_CLOUD";
+  }
+  return modeName;
+}
+
+// True when an error came from the Chrome Prompt API / on-device path rather
+// than the cloud backend. Used to decide when a cloud-pinned retry is honest.
+export function isOnDeviceError(e) {
+  const msg = String(e?.message || e || "");
+  return /initializeDeviceModel|feature flag|gating|LanguageModel|Prompt API|on-device|not available in this environment/i.test(msg);
+}
+
 export function buildSummaryPrompt(notesText) {
   return [
     "You are a study assistant. Summarize the lecture notes below for a student revising before an exam.",

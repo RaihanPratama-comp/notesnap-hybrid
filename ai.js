@@ -5,7 +5,7 @@
 import { initializeApp } from "firebase/app";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { getAI, getGenerativeModel, GoogleAIBackend, InferenceMode } from "firebase/ai";
-import { buildSummaryPrompt, buildFlashcardPrompt, parseFlashcards, chooseMode } from "./logic.js?v=4";
+import { buildSummaryPrompt, buildFlashcardPrompt, parseFlashcards, chooseMode, effectiveMode, isOnDeviceError } from "./logic.js?v=5";
 
 let app = null;
 let ai = null;
@@ -68,15 +68,8 @@ export async function ensureDeviceModel(onProgress) {
   deviceReady = true;
 }
 
-// Errors thrown by the Chrome Prompt API / on-device path (as opposed to real
-// cloud errors). Used to decide when a cloud-pinned retry is honest.
-function isOnDeviceError(e) {
-  const msg = String(e?.message || e || "");
-  return /feature flag|LanguageModel|Prompt API|on-device|not available in this environment/i.test(msg);
-}
-
 async function generate(modeName, prompt, onProgress) {
-  let effectiveMode = modeName;
+  let effective = modeName;
 
   if (modeName === "ONLY_ON_DEVICE") {
     // Private mode: never touch the cloud. Fail honestly up front when the
@@ -87,27 +80,27 @@ async function generate(modeName, prompt, onProgress) {
     }
     await ensureDeviceModel(onProgress);
   } else {
-    if (modeName === "PREFER_ON_DEVICE") await ensureDeviceModel(onProgress);
-    // When on-device cannot run at all, PREFER_IN_CLOUD's SDK fallback would
-    // try the device after a cloud error and mask the real cloud error with a
-    // Chrome Prompt API error ("feature flag gating model execution was
-    // disabled"). Pin to cloud so the cloud result/error is the real one.
-    if (modeName === "PREFER_IN_CLOUD") {
-      const avail = await checkOnDeviceAvailability();
-      if (avail === "unavailable") effectiveMode = "ONLY_IN_CLOUD";
-    }
+    // When on-device cannot run at all, pin EVERY PREFER_* mode (including
+    // PREFER_ON_DEVICE, used by Summarize on short notes) to ONLY_IN_CLOUD.
+    // Leaving PREFER_ON_DEVICE to the SDK makes generateContent() die inside
+    // the Chrome Prompt API path ("model.initializeDeviceModel is not a
+    // function" / "The feature flag gating model execution was disabled")
+    // instead of falling back to cloud.
+    const avail = await checkOnDeviceAvailability();
+    effective = effectiveMode(modeName, avail);
+    if (effective === "PREFER_ON_DEVICE") await ensureDeviceModel(onProgress);
   }
 
   try {
-    const model = modelFor(effectiveMode);
+    const model = modelFor(effective);
     const result = await model.generateContent(prompt);
-    return { text: result.response.text(), mode: effectiveMode };
+    return { text: result.response.text(), mode: effective };
   } catch (e) {
     // Last-resort honesty: if a PREFER_* request died inside the on-device
     // path (availability looked OK but session creation hit the Chrome
     // feature-flag gate), retry once pinned to cloud. ONLY_ON_DEVICE never
     // retries — private notes must not leave the device.
-    if (modeName !== "ONLY_ON_DEVICE" && effectiveMode !== "ONLY_IN_CLOUD" && isOnDeviceError(e)) {
+    if (modeName !== "ONLY_ON_DEVICE" && effective !== "ONLY_IN_CLOUD" && isOnDeviceError(e)) {
       const model = modelFor("ONLY_IN_CLOUD");
       const result = await model.generateContent(prompt);
       return { text: result.response.text(), mode: "ONLY_IN_CLOUD" };

@@ -1,6 +1,6 @@
-import { firebaseConfig } from "./config.js?v=4";
-import { initFirebase, isConfigured, checkOnDeviceAvailability, summarizeNotes, makeFlashcards } from "./ai.js?v=4";
-import { validateNotes, cardsToTsv } from "./logic.js?v=4";
+import { firebaseConfig } from "./config.js?v=5";
+import { initFirebase, isConfigured, checkOnDeviceAvailability, summarizeNotes, makeFlashcards } from "./ai.js?v=5";
+import { validateNotes, cardsToTsv } from "./logic.js?v=5";
 
 const $ = (id) => document.getElementById(id);
 const notesEl = $("notes"), progressEl = $("progress"), errorEl = $("error");
