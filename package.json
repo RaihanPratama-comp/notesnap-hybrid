@@ -1,0 +1,1 @@
+{"description":"NoteSnap Hybrid — study notes to summary & flashcards with Firebase AI Logic hybrid inference (on-device + cloud).","license":"MIT","name":"notesnap-hybrid","private":true,"scripts":{"start":"python3 -m http.server 8000","test":"node --test tests/logic.test.mjs"},"type":"module","version":"1.0.0"}

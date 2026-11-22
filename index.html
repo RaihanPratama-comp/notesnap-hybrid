@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoteSnap Hybrid — study notes to summary & flashcards, on-device + cloud</title>
+<link rel="stylesheet" href="styles.css">
+<script type="importmap">
+{
+  "imports": {
+    "firebase/app": "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js",
+    "firebase/app-check": "https://www.gstatic.com/firebasejs/12.5.0/firebase-app-check.js",
+    "firebase/ai": "https://www.gstatic.com/firebasejs/12.5.0/firebase-ai.js"
+  }
+}
+</script>
+</head>
+<body>
+<header>
+  <h1>📓 NoteSnap Hybrid</h1>
+  <p class="tagline">Paste lecture notes → get a summary &amp; flashcards. Runs <strong>on-device</strong> (Gemini Nano, private &amp; offline) when available, <strong>cloud</strong> otherwise — one Firebase AI Logic SDK.</p>
+  <div id="statusbar">
+    <span id="device-badge" class="badge">On-device model: checking…</span>
+    <span id="net-badge" class="badge">Network: online</span>
+    <span id="config-badge" class="badge warn">Firebase: not configured</span>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="row between">
+      <label for="notes"><strong>Your notes</strong></label>
+      <span id="charcount" class="muted">0 chars</span>
+    </div>
+    <textarea id="notes" rows="12" placeholder="Paste your lecture notes here (min 80 characters)…"></textarea>
+    <div class="row wrap">
+      <button id="btn-sample" class="ghost">Load sample notes</button>
+      <label class="toggle"><input type="checkbox" id="private-mode"> 🔒 Private mode (on-device only)</label>
+    </div>
+    <div class="row wrap">
+      <button id="btn-summarize" class="primary">Summarize</button>
+      <button id="btn-flashcards" class="primary alt">Make flashcards</button>
+    </div>
+    <p id="progress" class="muted" hidden></p>
+    <p id="error" class="error" hidden></p>
+  </section>
+
+  <section class="card" id="summary-card" hidden>
+    <div class="row between"><h2>Summary</h2><span id="summary-mode" class="badge"></span></div>
+    <div id="summary-out" class="output"></div>
+  </section>
+
+  <section class="card" id="cards-card" hidden>
+    <div class="row between">
+      <h2>Flashcards</h2>
+      <span id="cards-mode" class="badge"></span>
+    </div>
+    <div id="cards-out"></div>
+    <div class="row wrap">
+      <button id="btn-export-tsv" class="ghost">Export for Anki (.tsv)</button>
+      <button id="btn-export-json" class="ghost">Export JSON</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>How hybrid inference is used</h2>
+    <ul class="tight">
+      <li><strong>Summarize</strong> → <code>PREFER_ON_DEVICE</code> (Gemini Nano in Chrome; private, offline, free) — long notes (&gt;~3k tokens) switch to <code>PREFER_IN_CLOUD</code>.</li>
+      <li><strong>Flashcards</strong> → <code>PREFER_IN_CLOUD</code> for structured JSON quality, with on-device fallback.</li>
+      <li><strong>Private mode</strong> → <code>ONLY_ON_DEVICE</code>: sensitive notes never leave the device; the app errors instead of silently using the cloud.</li>
+      <li>All AI calls go through <strong>Firebase AI Logic</strong> (<code>firebase/ai</code>) with App Check enforced. No other model APIs.</li>
+    </ul>
+  </section>
+</main>
+
+<footer><p class="muted">Built for #BuildHybridAI 2026 · Web (Chrome) · Firebase AI Logic hybrid inference · Notes &amp; history stay in your browser (localStorage).</p></footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

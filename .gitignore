@@ -1,0 +1,6 @@
+.env
+*.local
+node_modules/
+# Never commit App Check debug tokens or service-account keys.
+*debug-token*
+*service-account*.json
